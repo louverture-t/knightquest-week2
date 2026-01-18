@@ -1,0 +1,29 @@
+{
+  "name": "knights-quest",
+  "version": "1.0.0",
+  "description": "A Node.js CLI application for creating fantasy quests - Module 2 Database Foundations Capstone",
+  "main": "src/cli.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/cli.js",
+    "db:create": "createdb knights_quest",
+    "db:schema": "psql -d knights_quest -f db/schema.sql",
+    "db:seed": "psql -d knights_quest -f db/seeds.sql",
+    "db:reset": "npm run db:schema && npm run db:seed"
+  },
+  "keywords": [
+    "nodejs",
+    "postgresql",
+    "cli",
+    "inquirer",
+    "capstone",
+    "database"
+  ],
+  "author": "Student Developer",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "inquirer": "^9.2.12",
+    "pg": "^8.11.3"
+  }
+}

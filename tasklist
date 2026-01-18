@@ -1,0 +1,104 @@
+Implementation Task List
+Phase 1: Project Setup (Day 1)
+TaskDescriptionCommand/Action1.1Create project foldermkdir knights-quest && cd knights-quest1.2Initialize npm with ES Modulesnpm init -y then add "type": "module" to package.json1.3Install dependenciesnpm install inquirer pg dotenv1.4Create folder structuremkdir db src1.5Create .gitignoreAdd: node_modules/ and .env1.6Create .env fileAdd: DATABASE_URL=postgres://user:pass@localhost:5432/knights_quest1.7Create databasecreatedb knights_quest
+
+Phase 2: Database Schema (Day 2)
+TaskDescriptionVerification2.1Create db/schema.sqlAll 5 tables with proper constraints2.2Test schema in DBeaverExecute SQL, verify tables created2.3Create db/seeds.sqlKing Arthur themed data2.4Run seeds in DBeaverQuery tables, verify row counts
+
+Phase 3: Database Connection Layer (Day 3)
+TaskDescriptionVerification3.1Create src/db.jsPool + query helper + transaction helper3.2Create src/queries.jsAll SQL query templates3.3Test connectionRun simple SELECT, verify data returns
+
+Phase 4: CLI Development (Days 4-5)
+TaskDescriptionVerification4.1Create cli.js structureImports, main function, welcome message4.2Implement selectRealm()List prompt shows all realms4.3Implement selectCharacters()Checkbox with 1-3 validation4.4Implement assignItems()Loop per character, ≥1 item validation4.5Implement getQuestTitle()Input prompt with validation4.6Implement displaySummary()Formatted output of selections4.7Implement confirmQuest()Confirm prompt returns boolean4.8Implement saveQuest()Transaction-based insert4.9Implement main loopdo-while with "create another" prompt
+
+Phase 5: Error Handling & Polish (Day 6)
+TaskDescriptionVerification5.1Add try-catch blocksNo crashes on errors5.2Add input validationInvalid inputs re-prompt5.3Handle edge casesEmpty results, DB failures5.4Add visual polishClear formatting, helpful messages
+
+Phase 6: Documentation & Testing (Day 7)
+TaskDescriptionVerification6.1Write README.mdSetup instructions, usage guide6.2Test complete flow3+ quest creations, verify in DBeaver6.3Code cleanupRemove debug logs, add comments6.4Final verificationFresh setup, run against rubric
+
+SQL Queries Reference
+Query Templates
+sql-- List all realms
+SELECT id, name, ruler FROM realms ORDER BY name;
+
+-- Get characters by realm
+SELECT id, name, role FROM characters WHERE realm_id = $1 ORDER BY name;
+
+-- List all items
+SELECT id, name, type, power FROM items ORDER BY name;
+
+-- Insert new quest (returns id)
+INSERT INTO quests (title, realm_id) VALUES ($1, $2) RETURNING id;
+
+-- Insert quest assignment
+INSERT INTO quest_assignments (quest_id, character_id, item_id) 
+VALUES ($1, $2, $3);
+
+-- Verify quest (for testing)
+SELECT q.*, r.name as realm_name 
+FROM quests q 
+JOIN realms r ON q.realm_id = r.id 
+WHERE q.id = $1;
+
+-- Verify assignments (for testing)
+SELECT qa.*, c.name as character_name, i.name as item_name
+FROM quest_assignments qa
+JOIN characters c ON qa.character_id = c.id
+JOIN items i ON qa.item_id = i.id
+WHERE qa.quest_id = $1;
+
+Setup Commands Summary
+bash
+# 1. Create and enter project directory
+mkdir knights-quest && cd knights-quest
+
+# 2. Initialize npm
+npm init -y
+
+# 3. Install dependencies
+npm install inquirer pg dotenv
+
+# 4. Create folders
+mkdir db src
+
+# 5. Create database
+createdb knights_quest
+
+# 6. Run schema (after creating schema.sql)
+psql -d knights_quest -f db/schema.sql
+
+# 7. Run seeds (after creating seeds.sql)
+psql -d knights_quest -f db/seeds.sql
+
+# 8. Run application
+node src/cli.js
+
+Deliverables Checklist
+
+ db/schema.sql - All CREATE TABLE statements
+ db/seeds.sql - King Arthur themed INSERT statements
+ src/db.js - Connection pool and transaction helper
+ src/queries.js - SQL query templates
+ src/cli.js - Main CLI application
+ .env - Database connection string
+ .gitignore - Excludes node_modules and .env
+ package.json - Dependencies with "type": "module"
+ README.md - Setup and usage instructions
+
+
+Document Version: 1.0
+Last Updated: Module 2 - Database Foundations
+Theme: King Arthur / Knights of the Round Table
+I've created a comprehensive PRD markdown file that you can copy and paste. The artifact includes:
+
+Complete tech stack with versions and ES Modules configuration
+Database schema with visual diagrams and table definitions
+King Arthur themed seed data - all realms, characters, and items
+CLI flow diagram showing the complete user journey with loop
+Item assignment logic with your requirements (≥1 per character, shareable)
+Transaction guide since you haven't covered BEGIN/COMMIT/ROLLBACK yet
+Detailed task list broken into 6 phases across 7 days
+Success criteria aligned with the grading rubric
+SQL query reference for all operations
+Setup commands for quick reference
