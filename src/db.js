@@ -11,17 +11,41 @@ dotenv.config();
 const { Pool } = pg;
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT
 });
 
-// Log connection status (helpful for debugging)
+// Track if we've logged the initial connection
+let initialConnectionLogged = false;
+
+// Log connection status (helpful for debugging) - only once
 pool.on('connect', () => {
-    console.log('✅ Connected to PostgreSQL database');
+    if (!initialConnectionLogged) {
+        initialConnectionLogged = true;
+        // Connection message now handled by testConnection()
+    }
 });
 
 pool.on('error', (err) => {
     console.error('❌ Database connection error:', err.message);
 });
+
+/**
+ * Test database connection
+ * Use this at startup to verify connectivity before running queries
+ * @returns {Promise<boolean>} True if connection successful
+ */
+const testConnection = async () => {
+    try {
+        await pool.query('SELECT 1');
+        return true;
+    } catch (error) {
+        throw error;
+    }
+};
 
 /**
  * Execute a SQL query
@@ -74,4 +98,4 @@ const transaction = async (callback) => {
  */
 const close = () => pool.end();
 
-export { query, getClient, transaction, close, pool };
+export { query, getClient, transaction, close, pool, testConnection };

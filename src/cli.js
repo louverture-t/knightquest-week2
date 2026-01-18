@@ -5,6 +5,8 @@
 // Theme: King Arthur / Knights of the Round Table
 
 import inquirer from 'inquirer';
+import chalk from 'chalk';
+import ora from 'ora';
 import * as db from './db.js';
 import * as queries from './queries.js';
 
@@ -17,10 +19,10 @@ import * as queries from './queries.js';
  */
 function showWelcome() {
     console.log('\n');
-    console.log('⚔️  ═══════════════════════════════════════════════════════════  ⚔️');
-    console.log('                    KNIGHTS QUEST                                  ');
-    console.log('              King Arthur\'s Round Table Adventure                 ');
-    console.log('⚔️  ═══════════════════════════════════════════════════════════  ⚔️');
+    console.log(chalk.yellow('⚔️  ═══════════════════════════════════════════════════════════  ⚔️'));
+    console.log(chalk.bold.cyan('                    KNIGHTS QUEST                                  '));
+    console.log(chalk.cyan('              King Arthur\'s Round Table Adventure                 '));
+    console.log(chalk.yellow('⚔️  ═══════════════════════════════════════════════════════════  ⚔️'));
     console.log('\n');
 }
 
@@ -29,22 +31,22 @@ function showWelcome() {
  */
 function displayQuestSummary(questTitle, realm, characters, assignments) {
     console.log('\n');
-    console.log('📜 ═══════════════════════════════════════════════════════════');
-    console.log('                    QUEST SUMMARY                              ');
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log(`\n🏰 Quest: ${questTitle}`);
-    console.log(`🗺️  Realm: ${realm.name} (Ruled by ${realm.ruler})`);
+    console.log(chalk.magenta('📜 ═══════════════════════════════════════════════════════════'));
+    console.log(chalk.bold.magenta('                    QUEST SUMMARY                              '));
+    console.log(chalk.magenta('═══════════════════════════════════════════════════════════════'));
+    console.log(`\n🏰 Quest: ${chalk.bold.white(questTitle)}`);
+    console.log(`🗺️  Realm: ${chalk.cyan(realm.name)} (Ruled by ${chalk.yellow(realm.ruler)})`);
     console.log('\n👥 Party Members & Equipment:');
-    console.log('───────────────────────────────────────');
+    console.log(chalk.gray('───────────────────────────────────────'));
     
     assignments.forEach(({ character, items }) => {
-        console.log(`\n   🛡️  ${character.name} (${character.role})`);
+        console.log(`\n   🛡️  ${chalk.bold.green(character.name)} (${chalk.italic(character.role)})`);
         items.forEach(item => {
-            console.log(`      └─ ${item.name} (${item.type}, Power: ${item.power})`);
+            console.log(chalk.gray(`      └─ `) + `${chalk.white(item.name)} (${item.type}, Power: ${chalk.yellow(item.power)})`);
         });
     });
     
-    console.log('\n═══════════════════════════════════════════════════════════════');
+    console.log('\n' + chalk.magenta('═══════════════════════════════════════════════════════════════'));
 }
 
 /**
@@ -52,12 +54,73 @@ function displayQuestSummary(questTitle, realm, characters, assignments) {
  */
 function displaySuccess(questId) {
     console.log('\n');
-    console.log('🎉 ═══════════════════════════════════════════════════════════');
-    console.log('                    QUEST CREATED!                             ');
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log(`\n✅ Your quest has been recorded in the archives!`);
-    console.log(`📋 Quest ID: ${questId}`);
-    console.log('\n═══════════════════════════════════════════════════════════════');
+    console.log(chalk.green('🎉 ═══════════════════════════════════════════════════════════'));
+    console.log(chalk.bold.green('                    QUEST CREATED!                             '));
+    console.log(chalk.green('═══════════════════════════════════════════════════════════════'));
+    console.log(`\n${chalk.green('✅')} Your quest has been recorded in the archives!`);
+    console.log(`📋 Quest ID: ${chalk.bold.cyan(questId)}`);
+    console.log('\n' + chalk.green('═══════════════════════════════════════════════════════════════'));
+}
+
+/**
+ * Display error message with formatting
+ */
+function displayError(title, message, hint = null) {
+    console.log('\n');
+    console.log(chalk.red('❌ ═══════════════════════════════════════════════════════════'));
+    console.log(chalk.bold.red(`                    ${title}`));
+    console.log(chalk.red('═══════════════════════════════════════════════════════════════'));
+    console.log(`\n${chalk.red('Error:')} ${message}`);
+    if (hint) {
+        console.log(chalk.yellow(`\n💡 Hint: ${hint}`));
+    }
+    console.log('\n' + chalk.red('═══════════════════════════════════════════════════════════════'));
+}
+
+/**
+ * Check database connection at startup
+ */
+async function checkDatabaseConnection() {
+    const spinner = ora({
+        text: 'Connecting to database...',
+        color: 'cyan'
+    }).start();
+
+    try {
+        await db.testConnection();
+        spinner.succeed(chalk.green('Connected to PostgreSQL database'));
+        return true;
+    } catch (error) {
+        spinner.fail(chalk.red('Cannot connect to database'));
+        
+        // Provide specific error messages based on error type
+        if (error.code === 'ECONNREFUSED') {
+            displayError(
+                'CONNECTION REFUSED',
+                'PostgreSQL server is not running or not reachable.',
+                'Make sure PostgreSQL is running and check your DB_HOST and DB_PORT in .env'
+            );
+        } else if (error.code === '28P01' || error.code === '28000') {
+            displayError(
+                'AUTHENTICATION FAILED',
+                'Invalid database username or password.',
+                'Check your DB_USER and DB_PASSWORD in .env'
+            );
+        } else if (error.code === '3D000') {
+            displayError(
+                'DATABASE NOT FOUND',
+                `Database "${process.env.DB_NAME || 'unknown'}" does not exist.`,
+                'Run "npm run db:create" to create the database, then "npm run db:reset" to set up tables'
+            );
+        } else {
+            displayError(
+                'DATABASE ERROR',
+                error.message,
+                'Check your .env file configuration'
+            );
+        }
+        return false;
+    }
 }
 
 // ============================================
@@ -68,32 +131,92 @@ function displaySuccess(questId) {
  * Fetch all realms from database
  */
 async function fetchRealms() {
-    const result = await db.query(queries.listRealms);
-    return result.rows;
+    const spinner = ora({
+        text: 'Loading realms...',
+        color: 'cyan'
+    }).start();
+
+    try {
+        const result = await db.query(queries.listRealms);
+        
+        if (result.rows.length === 0) {
+            spinner.warn(chalk.yellow('No realms found in database'));
+            return [];
+        }
+        
+        spinner.succeed(chalk.green(`Loaded ${result.rows.length} realm(s)`));
+        return result.rows;
+    } catch (error) {
+        spinner.fail(chalk.red('Failed to load realms'));
+        throw error;
+    }
 }
 
 /**
  * Fetch characters for a specific realm
  */
 async function fetchCharactersByRealm(realmId) {
-    const result = await db.query(queries.charactersByRealm, [realmId]);
-    return result.rows;
+    const spinner = ora({
+        text: 'Loading characters...',
+        color: 'cyan'
+    }).start();
+
+    try {
+        const result = await db.query(queries.charactersByRealm, [realmId]);
+        
+        if (result.rows.length === 0) {
+            spinner.warn(chalk.yellow('No characters found in this realm'));
+            return [];
+        }
+        
+        spinner.succeed(chalk.green(`Loaded ${result.rows.length} character(s)`));
+        return result.rows;
+    } catch (error) {
+        spinner.fail(chalk.red('Failed to load characters'));
+        throw error;
+    }
 }
 
 /**
  * Fetch all items from database
  */
 async function fetchItems() {
-    const result = await db.query(queries.listItems);
-    return result.rows;
+    const spinner = ora({
+        text: 'Loading items...',
+        color: 'cyan'
+    }).start();
+
+    try {
+        const result = await db.query(queries.listItems);
+        
+        if (result.rows.length === 0) {
+            spinner.warn(chalk.yellow('No items found in database'));
+            return [];
+        }
+        
+        spinner.succeed(chalk.green(`Loaded ${result.rows.length} item(s)`));
+        return result.rows;
+    } catch (error) {
+        spinner.fail(chalk.red('Failed to load items'));
+        throw error;
+    }
 }
 
 /**
  * Fetch realm details by ID
  */
 async function fetchRealmById(realmId) {
-    const result = await db.query(queries.getRealmById, [realmId]);
-    return result.rows[0];
+    try {
+        const result = await db.query(queries.getRealmById, [realmId]);
+        
+        if (!result.rows[0]) {
+            throw new Error(`Realm with ID ${realmId} not found`);
+        }
+        
+        return result.rows[0];
+    } catch (error) {
+        throw error;
+    }
 }
 
 // ============================================
@@ -232,24 +355,37 @@ async function promptCreateAnother() {
  * Save quest and assignments to database using transaction
  */
 async function saveQuest(title, realmId, assignments) {
-    return await db.transaction(async (client) => {
-        // 1. Insert the quest
-        const questResult = await client.query(queries.insertQuest, [title, realmId]);
-        const quest = questResult.rows[0];
-        
-        // 2. Insert all assignments
-        for (const { character, items } of assignments) {
-            for (const item of items) {
-                await client.query(queries.insertQuestAssignment, [
-                    quest.id,
-                    character.id,
-                    item.id
-                ]);
+    const spinner = ora({
+        text: 'Saving quest to the archives...',
+        color: 'cyan'
+    }).start();
+
+    try {
+        const quest = await db.transaction(async (client) => {
+            // 1. Insert the quest
+            const questResult = await client.query(queries.insertQuest, [title, realmId]);
+            const quest = questResult.rows[0];
+            
+            // 2. Insert all assignments
+            for (const { character, items } of assignments) {
+                for (const item of items) {
+                    await client.query(queries.insertQuestAssignment, [
+                        quest.id,
+                        character.id,
+                        item.id
+                    ]);
+                }
             }
-        }
+            
+            return quest;
+        });
         
+        spinner.succeed(chalk.green('Quest saved successfully!'));
         return quest;
-    });
+    } catch (error) {
+        spinner.fail(chalk.red('Failed to save quest'));
+        throw error;
+    }
 }
 
 // ============================================
@@ -262,25 +398,47 @@ async function saveQuest(title, realmId, assignments) {
 async function createQuest() {
     try {
         // Step 1: Select a Realm
-        console.log('\n📍 Step 1: Choose Your Realm\n');
+        console.log(chalk.cyan('\n📍 Step 1: Choose Your Realm\n'));
         const realms = await fetchRealms();
+        
+        // Handle empty realms
+        if (realms.length === 0) {
+            displayError(
+                'NO REALMS AVAILABLE',
+                'There are no realms in the database.',
+                'Run "npm run db:seed" to populate the database with sample data'
+            );
+            return false;
+        }
+        
         const realmId = await promptRealmSelection(realms);
         const realm = await fetchRealmById(realmId);
         
         // Step 2: Select Characters
-        console.log('\n📍 Step 2: Assemble Your Party\n');
+        console.log(chalk.cyan('\n📍 Step 2: Assemble Your Party\n'));
         const characters = await fetchCharactersByRealm(realmId);
         
         if (characters.length === 0) {
-            console.log('⚠️  No characters found in this realm. Please choose another realm.');
+            console.log(chalk.yellow('\n⚠️  No characters found in this realm. Please choose another realm.\n'));
             return false;
         }
         
         const selectedCharacters = await promptCharacterSelection(characters);
         
         // Step 3: Assign Items to Characters
-        console.log('\n📍 Step 3: Equip Your Party\n');
+        console.log(chalk.cyan('\n📍 Step 3: Equip Your Party\n'));
         const items = await fetchItems();
+        
+        // Handle empty items
+        if (items.length === 0) {
+            displayError(
+                'NO ITEMS AVAILABLE',
+                'There are no items in the database.',
+                'Run "npm run db:seed" to populate the database with sample data'
+            );
+            return false;
+        }
+        
         const assignments = [];
         
         for (const character of selectedCharacters) {
@@ -292,7 +450,7 @@ async function createQuest() {
         }
         
         // Step 4: Enter Quest Title
-        console.log('\n📍 Step 4: Name Your Quest\n');
+        console.log(chalk.cyan('\n📍 Step 4: Name Your Quest\n'));
         const questTitle = await promptQuestTitle();
         
         // Step 5: Display Summary and Confirm
@@ -301,7 +459,7 @@ async function createQuest() {
         const confirmed = await promptConfirmation();
         
         if (!confirmed) {
-            console.log('\n❌ Quest creation cancelled.\n');
+            console.log(chalk.yellow('\n❌ Quest creation cancelled.\n'));
             return false;
         }
         
@@ -312,7 +470,27 @@ async function createQuest() {
         return true;
         
     } catch (error) {
-        console.error('\n❌ Error creating quest:', error.message);
+        // Handle user cancellation (Ctrl+C during prompts)
+        if (error.name === 'ExitPromptError') {
+            console.log(chalk.yellow('\n\n⚔️  Quest creation interrupted. Farewell!\n'));
+            await db.close();
+            process.exit(0);
+        }
+        
+        // Handle database connection errors during the flow
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            displayError(
+                'CONNECTION LOST',
+                'Lost connection to the database during quest creation.',
+                'Check if PostgreSQL is still running and try again'
+            );
+        } else {
+            displayError(
+                'QUEST CREATION FAILED',
+                error.message,
+                'Please try again. If the problem persists, check the database connection.'
+            );
+        }
         return false;
     }
 }
@@ -323,19 +501,35 @@ async function createQuest() {
 async function main() {
     showWelcome();
     
+    // Check database connection before proceeding
+    const connected = await checkDatabaseConnection();
+    if (!connected) {
+        process.exit(1);
+    }
+    
     let continueCreating = true;
     
     while (continueCreating) {
         await createQuest();
-        continueCreating = await promptCreateAnother();
+        
+        try {
+            continueCreating = await promptCreateAnother();
+        } catch (error) {
+            // Handle Ctrl+C during "create another" prompt
+            if (error.name === 'ExitPromptError') {
+                continueCreating = false;
+            } else {
+                throw error;
+            }
+        }
     }
     
     // Goodbye message
     console.log('\n');
-    console.log('⚔️  ═══════════════════════════════════════════════════════════  ⚔️');
-    console.log('                    FAREWELL, NOBLE KNIGHT!                       ');
-    console.log('              May your quests bring glory to the realm!           ');
-    console.log('⚔️  ═══════════════════════════════════════════════════════════  ⚔️');
+    console.log(chalk.yellow('⚔️  ═══════════════════════════════════════════════════════════  ⚔️'));
+    console.log(chalk.bold.cyan('                    FAREWELL, NOBLE KNIGHT!                       '));
+    console.log(chalk.cyan('              May your quests bring glory to the realm!           '));
+    console.log(chalk.yellow('⚔️  ═══════════════════════════════════════════════════════════  ⚔️'));
     console.log('\n');
     
     // Close database connection
@@ -343,8 +537,25 @@ async function main() {
     process.exit(0);
 }
 
+// Handle SIGINT (Ctrl+C) gracefully
+process.on('SIGINT', async () => {
+    console.log(chalk.yellow('\n\n⚔️  Quest interrupted. Farewell, noble knight!\n'));
+    await db.close();
+    process.exit(0);
+});
+
 // Run the application
-main().catch((error) => {
-    console.error('Fatal error:', error);
+main().catch(async (error) => {
+    // Handle specific error types
+    if (error.code === 'ECONNREFUSED') {
+        displayError(
+            'CONNECTION FAILED',
+            'Could not connect to the database.',
+            'Make sure PostgreSQL is running and check your .env configuration'
+        );
+    } else {
+        console.error(chalk.red('\n❌ Fatal error:'), error.message);
+    }
+    await db.close();
     process.exit(1);
 });

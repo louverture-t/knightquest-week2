@@ -22,8 +22,18 @@
   "author": "Student Developer",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.3.1",
-    "inquirer": "^9.2.12",
-    "pg": "^8.11.3"
-  }
+    "chalk": "^5.6.2",
+    "dotenv": "^16.6.1",
+    "inquirer": "^9.3.8",
+    "ora": "^9.0.0",
+    "pg": "^8.17.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/louverture-t/knightquest-week2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/louverture-t/knightquest-week2/issues"
+  },
+  "homepage": "https://github.com/louverture-t/knightquest-week2#readme"
 }
